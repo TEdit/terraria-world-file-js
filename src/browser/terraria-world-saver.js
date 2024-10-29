@@ -183,6 +183,7 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
         this.saveUInt8( data.shadowOrbCount );
         this.saveInt32( data.altarCount );
         this.saveBoolean( data.hardMode );
+        if (this.options.world.fileFormatHeader.version >= 257) { data.partyOfDoom = this.saveBoolean(data.partyOfDoom); }
         this.saveInt32( data.invasionDelay );
         this.saveInt32( data.invasionSize );
         this.saveInt32( data.invasionType );
@@ -628,7 +629,13 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
     }
 
     saveNPCs() {
-        const data = this.options.world.NPCs;
+        const data = this.options.world.NPCs.NPCs;
+        const data2 = this.options.world.NPCs.ShimmeredNPCs;
+
+        if (this.options.world.fileFormatHeader.version >= 268) {
+            this.saveInt32( data2.length );
+            data2.forEach(npc => this.saveInt32(npc));
+        }
 
         data.forEach(NPC => {
             if (NPC.townNPC) {

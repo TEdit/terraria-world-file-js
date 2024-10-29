@@ -266,6 +266,9 @@ export default class terrariaWorldParser extends terrariaFileParser {
         data.shadowOrbCount         = this.readUInt8();
         data.altarCount             = this.readInt32();
         data.hardMode               = this.readBoolean();
+
+        if (this.world.version >= 257) { data.partyOfDoom = this.readBoolean(); }
+
         data.invasionDelay          = this.readInt32();
         data.invasionSize           = this.readInt32();
         data.invasionType           = this.readInt32();
@@ -616,7 +619,7 @@ export default class terrariaWorldParser extends terrariaFileParser {
                 tile.wallId = (this.readUInt8() << 8) | tile.wallId; //adding another byte
         }
 
-        if (this.world.version >= 269 && header4 > 1) {
+        if (this.world.version >= 269 && flags4 > 1) {
             if ((flags4 & 2) === 2) tile.invisibleBlock = true;
             if ((flags4 & 4) === 4) tile.invisibleWall = true;
             if ((flags4 & 8) === 8) tile.fullBrightBlock = true;
@@ -685,7 +688,18 @@ export default class terrariaWorldParser extends terrariaFileParser {
     }
 
     parseNPCs() {
-        let data = [];
+        let data = {};
+
+        data.NPCs = [];
+        data.ShimmeredNPCs = [];
+
+        if (this.world.version >= 268) {
+            const numNpcs = this.readInt32();
+            
+            for (let i = 0; i < numNpcs; i++) {
+                data.ShimmeredNPCs.push(this.readInt32());
+            }
+        }
 
         let i = 0;
         for (; this.readBoolean(); i++) {
@@ -747,7 +761,7 @@ export default class terrariaWorldParser extends terrariaFileParser {
                 }
             }
 
-            data[i] = {
+            data.NPCs[i] = {
                 townNPC: true,
                 id: id,
                 name: this.readString(),
@@ -763,11 +777,11 @@ export default class terrariaWorldParser extends terrariaFileParser {
             };
 
             if (this.world.version >= 213 && this.parseBitsByte(1)[0])
-                data[i].variationIndex = this.readInt32();
+                data.NPCs[i].variationIndex = this.readInt32();
         }
 
         for (; this.readBoolean(); i++)
-            data[i] = {
+            data.NPCs[i] = {
                 pillar: true,
                 id: this.readInt32(),
                 position: {
