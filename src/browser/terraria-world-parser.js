@@ -530,14 +530,15 @@ export default class terrariaWorldParser extends terrariaFileParser {
         // flags2 present
         if (flags1 & 1) {
             flags2 = this.readUInt8();
+        }
 
         // flags3 present
-        if (flags2 & 1)
+        if (flags2 & 1) {
                 flags3 = this.readUInt8();
         }
 
         // flags4 present
-            if (this.world.version >= 269 && (flags3 & 1))
+        if (this.world.version >= 269 && (flags3 & 1)) {
                 flags4 = this.readUInt8();
         }
 
