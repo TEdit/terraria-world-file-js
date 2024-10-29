@@ -358,6 +358,44 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
             this.saveBoolean( data.downedDeerclops );
         }
 
+        if (this.options.world.fileFormatHeader.version >= 250) {
+            this.saveBoolean(data.unlockedSlimeBlueSpawn);
+        }
+    
+        if (this.options.world.fileFormatHeader.version >= 251) {
+            this.saveBoolean(data.unlockedMerchantSpawn);
+            this.saveBoolean(data.unlockedDemolitionistSpawn);
+            this.saveBoolean(data.unlockedPartyGirlSpawn);
+            this.saveBoolean(data.unlockedDyeTraderSpawn);
+            this.saveBoolean(data.unlockedTruffleSpawn);
+            this.saveBoolean(data.unlockedArmsDealerSpawn);
+            this.saveBoolean(data.unlockedNurseSpawn);
+            this.saveBoolean(data.unlockedPrincessSpawn);
+        }
+    
+        if (this.options.world.fileFormatHeader.version >= 259) {
+            this.saveBoolean(data.combatBookVolumeTwoWasUsed);
+        }
+    
+        if (this.options.world.fileFormatHeader.version >= 260) {
+            this.saveBoolean(data.peddlersSatchelWasUsed);
+        }
+    
+        if (this.options.world.fileFormatHeader.version >= 261) {
+            this.saveBoolean(data.unlockedSlimeGreenSpawn);
+            this.saveBoolean(data.unlockedSlimeOldSpawn);
+            this.saveBoolean(data.unlockedSlimePurpleSpawn);
+            this.saveBoolean(data.unlockedSlimeRainbowSpawn);
+            this.saveBoolean(data.unlockedSlimeRedSpawn);
+            this.saveBoolean(data.unlockedSlimeYellowSpawn);
+            this.saveBoolean(data.unlockedSlimeCopperSpawn);
+        }
+    
+        if (this.options.world.fileFormatHeader.version >= 264) {
+            this.saveBoolean(data.fastForwardTimeToDusk);
+            this.saveUInt8(data.moondialCooldown);
+        }
+
         return this.offset;
     }
 
@@ -383,7 +421,7 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
 
             for (let y = 0; y < this.options.world.header.maxTilesY;) {
                 const tile = data[x][y];
-                let flags1, flags2, flags3;
+                let flags1, flags2, flags3, flags4;
 
                 const startY = y;
                 do
@@ -418,6 +456,13 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
                         case "water": flags1 |= (1 << 3); break;
                         case "lava": flags1 |= (2 << 3); break;
                         case "honey": flags1 |= (3 << 3); break;
+                        case "shimmer": {
+                            if (this.options.world.fileFormatHeader.version >= 269) {
+                                flags3 |= 0b10000000;
+                                flags1 |= 0b00001000;
+                            }
+                            break;
+                        }
                     }
                 }
 
@@ -455,11 +500,30 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
                 if (tile.blockColor)
                     flags3 |= 8;
 
+
+                if (tile.invisibleBlock)
+                    flags4 |= 2;
+
+                if (tile.invisibleWall)
+                    flags4 |= 4;
+
+                if (tile.fullBrightBlock || tile.tileColor === 31)
+                    flags4 |= 8;
+
+                if (tile.fullBrightWall || tile.wallColor === 31)
+                    flags4 |= 16;
+
                 if (flags2 || flags3) {
                     flags1 |= 1;
                     this.saveUInt8( flags1 );
 
-                    if (flags3) {
+                    if (flags4) {
+                        flags3 |= 1;
+                        flags2 |= 1;
+                        this.saveUInt8( flags2 );
+                        this.saveUInt8( flags3 );
+                        this.saveUInt8( flags4 );
+                    } else if (flags3) {
                         flags2 |= 1;
                         this.saveUInt8( flags2 );
                         this.saveUInt8( flags3 );

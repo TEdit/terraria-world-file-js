@@ -458,7 +458,45 @@ export default class terrariaWorldParser extends terrariaFileParser {
         if (this.world.version >= 240) {
             data.downedDeerclops = this.readBoolean();
         }
-        
+
+        if (this.world.version >= 250) {
+            data.unlockedSlimeBlueSpawn = this.readBoolean();
+        }
+
+        if (this.world.version >= 251) {
+            data.unlockedMerchantSpawn = this.readBoolean();
+            data.unlockedDemolitionistSpawn = this.readBoolean();
+            data.unlockedPartyGirlSpawn = this.readBoolean();
+            data.unlockedDyeTraderSpawn = this.readBoolean();
+            data.unlockedTruffleSpawn = this.readBoolean();
+            data.unlockedArmsDealerSpawn = this.readBoolean();
+            data.unlockedNurseSpawn = this.readBoolean();
+            data.unlockedPrincessSpawn = this.readBoolean();
+        }
+
+        if (this.world.version >= 259) {
+            data.combatBookVolumeTwoWasUsed = this.readBoolean();
+        }
+
+        if (this.world.version >= 260) {
+            data.peddlersSatchelWasUsed = this.readBoolean();
+        }
+
+        if (this.world.version >= 261) {
+            data.unlockedSlimeGreenSpawn = this.readBoolean();
+            data.unlockedSlimeOldSpawn = this.readBoolean();
+            data.unlockedSlimePurpleSpawn = this.readBoolean();
+            data.unlockedSlimeRainbowSpawn = this.readBoolean();
+            data.unlockedSlimeRedSpawn = this.readBoolean();
+            data.unlockedSlimeYellowSpawn = this.readBoolean();
+            data.unlockedSlimeCopperSpawn = this.readBoolean();
+        }
+
+        if (this.world.version >= 264) {
+            data.fastForwardTimeToDusk = this.readBoolean();
+            data.moondialCooldown = this.readUInt8();
+        }
+
         return data;
     }
 
@@ -487,15 +525,20 @@ export default class terrariaWorldParser extends terrariaFileParser {
         let tile = {};
 
         const flags1 = this.readUInt8();
-        let flags2, flags3;
+        let flags2, flags3, flags4;
 
         // flags2 present
         if (flags1 & 1) {
             flags2 = this.readUInt8();
 
         // flags3 present
-            if (flags2 & 1)
+        if (flags2 & 1)
                 flags3 = this.readUInt8();
+        }
+
+        // flags4 present
+            if (this.world.version >= 269 && (flags3 & 1))
+                flags4 = this.readUInt8();
         }
 
         // contains block
@@ -537,6 +580,10 @@ export default class terrariaWorldParser extends terrariaFileParser {
                 case 2: tile.liquidType = "lava"; break;
                 case 3: tile.liquidType = "honey"; break;
             }
+
+            if (this.world.version >= 269 && (flags3 & 0b10000000) === 0b10000000) {
+                tile.liquidType = "shimmer";
+            }
         }
 
         // flags2 has any other informations than flags3 presence
@@ -571,6 +618,12 @@ export default class terrariaWorldParser extends terrariaFileParser {
                 tile.wallId = (this.readUInt8() << 8) | tile.wallId; //adding another byte
         }
 
+        if (this.world.version >= 269 && header4 > 1) {
+            if ((flags4 & 2) === 2) tile.invisibleBlock = true;
+            if ((flags4 & 4) === 4) tile.invisibleWall = true;
+            if ((flags4 & 8) === 8) tile.fullBrightBlock = true;
+            if ((flags4 & 16) === 16) tile.fullBrightWall = true;
+        }
         
         switch ((flags1 & 192) >> 6) {
             case 1: this.RLE = this.readUInt8(); break;
