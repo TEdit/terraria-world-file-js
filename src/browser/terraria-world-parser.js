@@ -92,7 +92,7 @@ export default class terrariaWorldParser extends terrariaFileParser {
 
     parseNecessaryData() {
         let version, magicNumber, fileType, pointers, importants, height, width;
-        let isAndroid = false;
+        let isChinese = false;
 
         this.offset = 0;
 
@@ -120,7 +120,7 @@ export default class terrariaWorldParser extends terrariaFileParser {
             throw new Error("Invalid file type");
 
         if ( magicNumber == "xindong") {
-            isAndroid = true;
+            isChinese = true;
         }
 
         if (version < 194)
@@ -132,7 +132,7 @@ export default class terrariaWorldParser extends terrariaFileParser {
             importants,
             width,
             height,
-            isAndroid
+            isChinese
         };
     }
 
@@ -151,7 +151,7 @@ export default class terrariaWorldParser extends terrariaFileParser {
         data.importants     = this.parseBitsByte(this.readInt16());
 
         if (data.magicNumber == "xindong") {
-            data.isAndroid = true;
+            data.isChinese = true;
         }
         return data;
     }
@@ -181,19 +181,16 @@ export default class terrariaWorldParser extends terrariaFileParser {
         data.maxTilesX              = this.readInt32();
 
         if (this.world.version >= 209) {
-            data.gameMode           = this.readInt32();
-          if (this.world.version >= 222) {
-            data.drunkWorld         = this.readBoolean();
-          }
+            data.gameMode = this.readInt32();
 
-            if (this.world.version >= 227)
-                data.getGoodWorld   = this.readBoolean();
-            if (this.world.version >= 238)
-                data.getTenthAnniversaryWorld = this.readBoolean();
-            if (this.world.version >= 239)
-                data.dontStarveWorld = this.readBoolean();
-            if (this.world.version >= 241)
-                data.notTheBeesWorld = this.readBoolean();
+            if (this.world.version >= 222) { data.drunkWorld = this.readBoolean(); }
+            if (this.world.version >= 227) { data.getGoodWorld = this.readBoolean(); }
+            if (this.world.version >= 238) { data.getTenthAnniversaryWorld = this.readBoolean(); }
+            if (this.world.version >= 239) { data.dontStarveWorld = this.readBoolean(); }
+            if (this.world.version >= 241) { data.notTheBeesWorld = this.readBoolean(); }
+            if (this.world.version >= 249) { data.remixWorld = this.readBoolean(); }
+            if (this.world.version >= 266) { data.noTrapsWorld = this.readBoolean(); }
+            data.zenithWorld = (this.world.version < 267) ? data.remixWorld && data.drunkWorld : this.readBoolean();
         } else if (this.world.version == 208) {
             data.masterMode         = this.readBoolean();
         } else if (this.world.version >= 112) {

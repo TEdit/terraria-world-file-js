@@ -113,7 +113,7 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
     parseNecessaryData() {
         let version, magicNumber, fileType, pointers, importants, height, width;
         let fileRevision = 0;
-        let isAndroid = false;
+        let isChinese = false;
         let fileFlags = 0;
 
         this.offset = 0;
@@ -143,7 +143,7 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
             throw new Error("Invalid file type");
 
         if ( magicNumber == "xindong") {
-            isAndroid = true;
+            isChinese = true;
         }
 
         if (version < 194)
@@ -157,7 +157,7 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
             height,
             fileRevision,
             fileFlags,
-            isAndroid
+            isChinese
         };
     }
 
@@ -182,9 +182,18 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
         let data = {};
 
         data.mapName                = this.readString();
-        data.seedText               = this.readString();
-        data.worldGeneratorVersion  = this.readBytes(8);
-        data.guid                   = this.readBytes(16);
+        if (this.world.version >= 179) {
+          if (this.world.version == 179) {
+            data.seedText               = this.readInt32();
+          } else {
+            data.seedText               = this.readString();
+          }
+          data.worldGeneratorVersion  = this.readBytes(8);
+        }
+        if (this.world.version >= 181) {
+          data.guid                   = this.readBytes(16);
+        }
+        data.guidString             = this.parseGuid(data.guid);
         data.worldId                = this.readInt32();
         data.leftWorld              = this.readInt32();
         data.rightWorld             = this.readInt32();
@@ -192,22 +201,29 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
         data.bottomWorld            = this.readInt32();
         data.maxTilesY              = this.readInt32();
         data.maxTilesX              = this.readInt32();
-        if (this.world.version >= 225) {
-            data.gameMode           = this.readInt32();
-            data.drunkWorld         = this.readBoolean();
 
-            if (this.world.version >= 227)
-                data.getGoodWorld   = this.readBoolean();
-            if (this.world.version >= 238)
-                data.getTenthAnniversaryWorld = this.readBoolean();
-            if (this.world.version >= 239)
-                data.dontStarveWorld = this.readBoolean();
-            if (this.world.version >= 241)
-                data.notTheBeesWorld = this.readBoolean();
-        } else {
+        if (this.world.version >= 209) {
+            data.gameMode = this.readInt32();
+
+            if (this.world.version >= 222) { data.drunkWorld = this.readBoolean(); }
+            if (this.world.version >= 227) { data.getGoodWorld = this.readBoolean(); }
+            if (this.world.version >= 238) { data.getTenthAnniversaryWorld = this.readBoolean(); }
+            if (this.world.version >= 239) { data.dontStarveWorld = this.readBoolean(); }
+            if (this.world.version >= 241) { data.notTheBeesWorld = this.readBoolean(); }
+            if (this.world.version >= 249) { data.remixWorld = this.readBoolean(); }
+            if (this.world.version >= 266) { data.noTrapsWorld = this.readBoolean(); }
+            data.zenithWorld = (this.world.version < 267) ? data.remixWorld && data.drunkWorld : this.readBoolean();
+        } else if (this.world.version == 208) {
+            data.masterMode         = this.readBoolean();
+        } else if (this.world.version >= 112) {
             data.expertMode         = this.readBoolean();
         }
-        data.creationTime           = this.readBytes(8);
+
+
+        if (this.world.version >= 141) {
+          data.creationTime           = this.readBytes(8);
+        }
+
         data.moonType               = this.readUInt8();
 
         data.treeX = [];
@@ -257,7 +273,9 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
         data.downedMechBossAny      = this.readBoolean();
         data.downedPlantBoss        = this.readBoolean();
         data.downedGolemBoss        = this.readBoolean();
-        data.downedSlimeKing        = this.readBoolean();
+        if (this.world.version >= 118) {
+            data.downedSlimeKing        = this.readBoolean();
+        }
         data.savedGoblin            = this.readBoolean();
         data.savedWizard            = this.readBoolean();
         data.savedMech              = this.readBoolean();
@@ -274,8 +292,12 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
         data.invasionSize           = this.readInt32();
         data.invasionType           = this.readInt32();
         data.invasionX              = this.readFloat64();
-        data.slimeRainTime          = this.readFloat64();
-        data.sundialCooldown        = this.readUInt8();
+        if (this.world.version >= 118) {
+            data.slimeRainTime          = this.readFloat64();
+        }
+        if (this.world.version >= 113) {
+            data.sundialCooldown        = this.readUInt8();
+        }
         data.tempRaining            = this.readBoolean();
         data.tempRainTime           = this.readInt32();
         data.tempMaxRain            = this.readFloat32();
@@ -294,95 +316,204 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
         data.numClouds              = this.readInt16();
         data.windSpeed              = this.readFloat32();
 
+        if (this.world.version < 95) {
+            return data;
+        }
+
+
         data.anglerWhoFinishedToday = [];
         for (let i = this.readInt32(); i > 0; --i)
             data.anglerWhoFinishedToday.push(this.readString());
 
+        if (this.world.version < 95) {
+            return data;
+        }
+
         data.savedAngler            = this.readBoolean();
+
+        if (this.world.version < 101) {
+            return data;
+        }
+
         data.anglerQuest            = this.readInt32();
-        data.savedStylist           = this.readBoolean();
-        data.savedTaxCollector      = this.readBoolean();
-        if (this.world.version >= 225)
+
+        if (this.world.version < 104) {
+            return data;
+        }
+
+        if (this.world.version > 104)
+          data.savedStylist           = this.readBoolean();
+        if (this.world.version >= 129)
+          data.savedTaxCollector      = this.readBoolean();
+        if (this.world.version >= 201)
             data.savedGolfer        = this.readBoolean();
 
-        data.invasionSizeStart      = this.readInt32();
-        data.tempCultistDelay       = this.readInt32();
+        if (this.world.version >= 107)
+          data.invasionSizeStart      = this.readInt32();
+        if (this.world.version >= 108)
+          data.tempCultistDelay       = this.readInt32();
+
+        if (this.world.version < 109) {
+            return data;
+        }
 
         data.killCount = [];
         for (let i = this.readInt16(); i > 0; i--)
             data.killCount.push(this.readInt32());
 
-        data.fastForwardTime        = this.readBoolean();
+        if (this.world.version < 109) {
+            return data;
+        }
+
+        if (this.world.version >= 140) {
+          data.fastForwardTime  = this.readBoolean();
+        }
+
+        if (this.world.version < 131) {
+            return data;
+        }
+
         data.downedFishron          = this.readBoolean();
-        data.downedMartians         = this.readBoolean();
-        data.downedAncientCultist   = this.readBoolean();
-        data.downedMoonlord         = this.readBoolean();
+        if (this.world.version >= 140) {
+            data.downedMartians         = this.readBoolean();
+            data.downedAncientCultist   = this.readBoolean();
+            data.downedMoonlord         = this.readBoolean();
+        }
+
         data.downedHalloweenKing    = this.readBoolean();
         data.downedHalloweenTree    = this.readBoolean();
         data.downedChristmasIceQueen = this.readBoolean();
+
+        if (this.world.version < 140) {
+            return data;
+        }
+
         data.downedChristmasSantank = this.readBoolean();
         data.downedChristmasTree    = this.readBoolean();
-        data.downedTowerSolar       = this.readBoolean();
-        data.downedTowerVortex      = this.readBoolean();
-        data.downedTowerNebula      = this.readBoolean();
-        data.downedTowerStardust    = this.readBoolean();
-        data.TowerActiveSolar       = this.readBoolean();
-        data.TowerActiveVortex      = this.readBoolean();
-        data.TowerActiveNebula      = this.readBoolean();
-        data.TowerActiveStardust    = this.readBoolean();
-        data.LunarApocalypseIsUp    = this.readBoolean();
-        data.tempPartyManual        = this.readBoolean();
-        data.tempPartyGenuine       = this.readBoolean();
-        data.tempPartyCooldown      = this.readInt32();
 
-        data.tempPartyCelebratingNPCs = [];
-        for (let i = this.readInt32(); i > 0; i--)
-            data.tempPartyCelebratingNPCs.push(this.readInt32());
+        if (this.world.version >= 140) {
+            data.downedTowerSolar       = this.readBoolean();
+            data.downedTowerVortex      = this.readBoolean();
+            data.downedTowerNebula      = this.readBoolean();
+            data.downedTowerStardust    = this.readBoolean();
+            data.TowerActiveSolar       = this.readBoolean();
+            data.TowerActiveVortex      = this.readBoolean();
+            data.TowerActiveNebula      = this.readBoolean();
+            data.TowerActiveStardust    = this.readBoolean();
+            data.LunarApocalypseIsUp    = this.readBoolean();
+        }
 
-        data.Temp_Sandstorm_Happening       = this.readBoolean();
-        data.Temp_Sandstorm_TimeLeft        = this.readInt32();
-        data.Temp_Sandstorm_Severity        = this.readFloat32();
-        data.Temp_Sandstorm_IntendedSeverity = this.readFloat32();
-        data.savedBartender                 = this.readBoolean();
-        data.DD2Event_DownedInvasionT1      = this.readBoolean();
-        data.DD2Event_DownedInvasionT2      = this.readBoolean();
-        data.DD2Event_DownedInvasionT3      = this.readBoolean();
+        if (this.world.version >= 170) {
+            data.tempPartyManual        = this.readBoolean();
+            data.tempPartyGenuine       = this.readBoolean();
+            data.tempPartyCooldown      = this.readInt32();
 
-        if (this.world.version >= 225) {
+            data.tempPartyCelebratingNPCs = [];
+            for (let i = this.readInt32(); i > 0; i--)
+                data.tempPartyCelebratingNPCs.push(this.readInt32());
+        }
+
+        if (this.world.version >= 174) {
+            data.Temp_Sandstorm_Happening       = this.readBoolean();
+            data.Temp_Sandstorm_TimeLeft        = this.readInt32();
+            data.Temp_Sandstorm_Severity        = this.readFloat32();
+            data.Temp_Sandstorm_IntendedSeverity = this.readFloat32();
+        }
+        if (this.world.version >= 178) {
+            data.savedBartender                 = this.readBoolean();
+            data.DD2Event_DownedInvasionT1      = this.readBoolean();
+            data.DD2Event_DownedInvasionT2      = this.readBoolean();
+            data.DD2Event_DownedInvasionT3      = this.readBoolean();
+        }
+
+        if (this.world.version >= 194) 
             data.setBGMushroom = this.readUInt8();
+        if (this.world.version >= 215) 
             data.setBGUnderworld = this.readUInt8();
+
+        if (this.world.version >= 195) {
             data.setBGTree2 = this.readUInt8();
             data.setBGTree3 = this.readUInt8();
             data.setBGTree4 = this.readUInt8();
+        }
 
+        if (this.world.version >= 204) {
             data.combatBookWasUsed = this.readBoolean();
+        }
+        if (this.world.version >= 207) {
             data.lanternNightCooldown = this.readInt32();
             data.lanternNightGenuine = this.readBoolean();
             data.lanternNightManual = this.readBoolean();
             data.lanternNightNextNightIsGenuine = this.readBoolean();
+        }
 
+        if (this.world.version >= 211) {
             data.treeTopsVariations = [];
             for (let i = this.readInt32(); i > 0; i--)
                 data.treeTopsVariations.push(this.readInt32());
-
+        }
+        if (this.world.version >= 212) {
             data.forceHalloweenForToday = this.readBoolean();
             data.forceXMasForToday = this.readBoolean();
-
+        }
+        if (this.world.version >= 216) {
             data.savedOreTierCopper = this.readInt32();
             data.savedOreTierIron = this.readInt32();
             data.savedOreTierSilver = this.readInt32();
             data.savedOreTierGold = this.readInt32();
+        }
 
+        if (this.world.version >= 217) {
             data.boughtCat = this.readBoolean();
             data.boughtDog = this.readBoolean();
             data.boughtBunny = this.readBoolean();
+        }
 
+        if (this.world.version >= 223) {
             data.downedEmpressOfLight = this.readBoolean();
             data.downedQueenSlime = this.readBoolean();
+        }
 
-            if (this.world.version >= 240) {
-                data.downedDeerclops = this.readBoolean();
-            }
+        if (this.world.version >= 240) {
+            data.downedDeerclops = this.readBoolean();
+        }
+
+        if (this.world.version >= 250) {
+            data.unlockedSlimeBlueSpawn = this.readBoolean();
+        }
+
+        if (this.world.version >= 251) {
+            data.unlockedMerchantSpawn = this.readBoolean();
+            data.unlockedDemolitionistSpawn = this.readBoolean();
+            data.unlockedPartyGirlSpawn = this.readBoolean();
+            data.unlockedDyeTraderSpawn = this.readBoolean();
+            data.unlockedTruffleSpawn = this.readBoolean();
+            data.unlockedArmsDealerSpawn = this.readBoolean();
+            data.unlockedNurseSpawn = this.readBoolean();
+            data.unlockedPrincessSpawn = this.readBoolean();
+        }
+
+        if (this.world.version >= 259) {
+            data.combatBookVolumeTwoWasUsed = this.readBoolean();
+        }
+
+        if (this.world.version >= 260) {
+            data.peddlersSatchelWasUsed = this.readBoolean();
+        }
+
+        if (this.world.version >= 261) {
+            data.unlockedSlimeGreenSpawn = this.readBoolean();
+            data.unlockedSlimeOldSpawn = this.readBoolean();
+            data.unlockedSlimePurpleSpawn = this.readBoolean();
+            data.unlockedSlimeRainbowSpawn = this.readBoolean();
+            data.unlockedSlimeRedSpawn = this.readBoolean();
+            data.unlockedSlimeYellowSpawn = this.readBoolean();
+            data.unlockedSlimeCopperSpawn = this.readBoolean();
+        }
+
+        if (this.world.version >= 264) {
+            data.fastForwardTimeToDusk = this.readBoolean();
+            data.moondialCooldown = this.readUInt8();
         }
 
         return data;
@@ -413,15 +544,21 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
         let tile = {};
 
         const flags1 = this.readUInt8();
-        let flags2, flags3;
+        let flags2, flags3, flags4;
 
         // flags2 present
         if (flags1 & 1) {
             flags2 = this.readUInt8();
+        }
 
         // flags3 present
-            if (flags2 & 1)
+        if (flags2 & 1) {
                 flags3 = this.readUInt8();
+        }
+
+        // flags4 present
+        if (this.world.version >= 269 && (flags3 & 1)) {
+                flags4 = this.readUInt8();
         }
 
         // contains block
@@ -463,6 +600,10 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
                 case 2: tile.liquidType = "lava"; break;
                 case 3: tile.liquidType = "honey"; break;
             }
+
+            if (this.world.version >= 269 && (flags3 & 0b10000000) === 0b10000000) {
+                tile.liquidType = "shimmer";
+            }
         }
 
         // flags2 has any other informations than flags3 presence
@@ -493,10 +634,17 @@ module.exports = class terrariaWorldParser extends terrariaFileParser {
                 tile.actuated = true;
             if (flags3 & 32)
                 tile.wireYellow = true;
-            if (flags3 & 64)
+            if (this.world.version >= 222 && flags3 & 64)
                 tile.wallId = (this.readUInt8() << 8) | tile.wallId; //adding another byte
         }
 
+        if (this.world.version >= 269 && header4 > 1) {
+            if ((flags4 & 2) === 2) tile.invisibleBlock = true;
+            if ((flags4 & 4) === 4) tile.invisibleWall = true;
+            if ((flags4 & 8) === 8) tile.fullBrightBlock = true;
+            if ((flags4 & 16) === 16) tile.fullBrightWall = true;
+        }
+        
         switch ((flags1 & 192) >> 6) {
             case 1: this.RLE = this.readUInt8(); break;
             case 2: this.RLE = this.readInt16(); break;

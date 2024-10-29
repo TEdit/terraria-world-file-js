@@ -104,6 +104,12 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
                 this.saveBoolean( data.dontStarveWorld );
             if (this.options.world.fileFormatHeader.version >= 241)
                 this.saveBoolean( data.notTheBeesWorld );
+            if (this.options.world.fileFormatHeader.version >= 249)
+                this.saveBoolean( data.remixWorld );
+            if (this.options.world.fileFormatHeader.version >= 266)
+                this.saveBoolean( data.noTrapsWorld );
+            if (this.options.world.fileFormatHeader.version >= 266)
+                this.saveBoolean( data.zenithWorld );
         } else if (this.options.world.fileFormatHeader.version  == 208) {
             this.saveBoolean(data.masterMode);
         } else if (this.options.world.fileFormatHeader.version >= 112) {
