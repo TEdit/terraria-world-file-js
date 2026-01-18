@@ -607,8 +607,8 @@ export default class terrariaWorldParser extends terrariaFileParser {
                 }
         }
 
-        // flags3 has any informations
-        if (flags3 > 0) {
+        // flags3 has any informations (beyond just the "has header4" flag)
+        if (flags3 > 1) {
             if (flags3 & 2)
                 tile.actuator = true;
             if (flags3 & 4)

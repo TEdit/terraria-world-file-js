@@ -403,6 +403,11 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
             this.saveUInt8(data.moondialCooldown);
         }
 
+        if (this.options.world.fileFormatHeader.version >= 264) {
+            this.saveBoolean(data.fastForwardTimeToDusk);
+            this.saveUInt8(data.moondialCooldown);
+        }
+
         return this.offset;
     }
 
@@ -501,30 +506,43 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
                 if (tile.actuator)
                     flags3 |= 2;
 
-                if (tile.wallColor)
-                    flags3 |= 16;
+                // For version 269+, paint color 31 is converted to fullbright coating (header4)
+                // so we exclude it from the paint color byte
+                if (this.options.world.fileFormatHeader.version >= 269) {
+                    if (tile.wallColor && tile.wallColor !== 31)
+                        flags3 |= 16;
 
-                if (tile.blockColor)
-                    flags3 |= 8;
+                    if (tile.blockColor && tile.blockColor !== 31)
+                        flags3 |= 8;
+                } else {
+                    if (tile.wallColor)
+                        flags3 |= 16;
 
+                    if (tile.blockColor)
+                        flags3 |= 8;
+                }
 
-                if (tile.invisibleBlock)
-                    flags4 |= 2;
+                // Header4 is only used in version 269+ (1.4.4+)
+                if (this.options.world.fileFormatHeader.version >= 269) {
+                    if (tile.invisibleBlock)
+                        flags4 |= 2;
 
-                if (tile.invisibleWall)
-                    flags4 |= 4;
+                    if (tile.invisibleWall)
+                        flags4 |= 4;
 
-                if (tile.fullBrightBlock || tile.tileColor === 31)
-                    flags4 |= 8;
+                    if (tile.fullBrightBlock || tile.blockColor === 31)
+                        flags4 |= 8;
 
-                if (tile.fullBrightWall || tile.wallColor === 31)
-                    flags4 |= 16;
+                    if (tile.fullBrightWall || tile.wallColor === 31)
+                        flags4 |= 16;
+                }
 
                 if (flags2 || flags3) {
                     flags1 |= 1;
                     this.saveUInt8( flags1 );
 
-                    if (flags4) {
+                    // Header4 only exists in version 269+
+                    if (this.options.world.fileFormatHeader.version >= 269 && flags4) {
                         flags3 |= 1;
                         flags2 |= 1;
                         this.saveUInt8( flags2 );
