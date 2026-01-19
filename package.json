@@ -1,0 +1,28 @@
+{
+  "name": "terraria-world-file-js",
+  "version": "1.0.0",
+  "description": "JavaScript library for parsing and saving Terraria world files",
+  "type": "module",
+  "main": "src/browser/terraria-world-parser.js",
+  "exports": {
+    ".": {
+      "import": "./src/browser/terraria-world-parser.js"
+    }
+  },
+  "scripts": {
+    "test:load": "node test/load.test.js",
+    "test:load-save-load": "node test/load-save-load.test.js"
+  },
+  "keywords": [
+    "terraria",
+    "world",
+    "parser",
+    "saver",
+    "binary"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

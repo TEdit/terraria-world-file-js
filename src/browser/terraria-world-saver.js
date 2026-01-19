@@ -10,27 +10,52 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
         this.options = options;
 
         try {
-            const pointers = [
-                this.saveFileFormatHeader(),
-                this.saveHeader(),
-                this.saveWorldTiles(),
-                this.saveChests(),
-                this.saveSigns(),
-                this.saveNPCs(),
-                this.saveTileEntities(),
-                this.saveWeightedPressurePlates(),
-                this.saveTownManager()
-            ];
+            // Collect section end offsets (pointers) - each pointer marks where a section ENDS
+            // pointer[i] = end of section i = start of section i+1
+            const pointers = [];
+
+            this.saveFileFormatHeader();
+            pointers.push(this.offset);  // pointer[0] = end of fileFormatHeader
+
+            this.saveHeader();
+            pointers.push(this.offset);  // pointer[1] = end of header
+
+            this.saveWorldTiles();
+            pointers.push(this.offset);  // pointer[2] = end of tiles
+
+            this.saveChests();
+            pointers.push(this.offset);  // pointer[3] = end of chests
+
+            this.saveSigns();
+            pointers.push(this.offset);  // pointer[4] = end of signs
+
+            this.saveNPCs();
+            pointers.push(this.offset);  // pointer[5] = end of NPCs
+
+            this.saveTileEntities();
+            pointers.push(this.offset);  // pointer[6] = end of tile entities
+
+            this.saveWeightedPressurePlates();
+            pointers.push(this.offset);  // pointer[7] = end of weighted pressure plates
+
+            this.saveTownManager();
+            pointers.push(this.offset);  // pointer[8] = end of town manager
+
             if (this.options.world.fileFormatHeader.version >= 225) {
-                pointers.push( this.saveBestiary() );
-                pointers.push( this.saveCreativePowers() );
+                this.saveBestiary();
+                pointers.push(this.offset);  // pointer[9] = end of bestiary
+
+                this.saveCreativePowers();
+                pointers.push(this.offset);  // pointer[10] = end of creative powers
             } else {
+                pointers.push(0);
                 pointers.push(0);
             }
 
             this.saveFooter();
             this.trimBuffer();
 
+            // Write pointers back to file (count was already written in saveFileFormatHeader)
             this.offset = this.pointersOffset;
             for (let i = 0; i < pointers.length; i++)
                 this.saveInt32(pointers[i]);
@@ -51,17 +76,16 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
         this.saveBoolean( data.favorite );
         this.skipBytes(7);
 
-        if (this.options.world.fileFormatHeader.version >= 225)
-            this.saveInt16(11);
-        else
-            this.saveInt16(10);
+        // Write pointer count directly (fixed per version)
+        const pointerCount = this.options.world.fileFormatHeader.version >= 225 ? 11 : 10;
+        this.saveInt16( pointerCount );
+        
+        // Reserve space for pointers - will be written later
         this.pointersOffset = this.offset;
-        this.skipBytes( this.options.world.fileFormatHeader.version >= 225 ? 44 : 40);
+        this.skipBytes( pointerCount * 4 );  // Reserve space for pointers (each is Int32)
 
         this.saveInt16( data.importants.length );
         this.saveBitsByte( data.importants );
-
-        return this.offset;
     }
 
     saveHeader() {
@@ -122,11 +146,11 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
 
         // 1, 3 >= v69, 9 >= 226
         if (this.options.world.fileFormatHeader.version >= 226 && data.moonType <= 9 && data.moonType >= 0) {
-            this.saveInt32(data.moonType);
+            this.saveUInt8(data.moonType);
         } else if (this.options.world.fileFormatHeader.version >= 69 && data.moonType <= 3 & data.moonType >= 0) {
-            this.saveInt32(data.moonType);
+            this.saveUInt8(data.moonType);
         } else {
-            this.saveInt32(0);
+            this.saveUInt8(0);
         }
 
         this.saveInt32( data.treeX[0] );
@@ -402,13 +426,6 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
             this.saveBoolean(data.fastForwardTimeToDusk);
             this.saveUInt8(data.moondialCooldown);
         }
-
-        if (this.options.world.fileFormatHeader.version >= 264) {
-            this.saveBoolean(data.fastForwardTimeToDusk);
-            this.saveUInt8(data.moondialCooldown);
-        }
-
-        return this.offset;
     }
 
     saveWorldTiles() {
@@ -593,8 +610,6 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
                 }
             }
         }
-
-        return this.offset;
     }
 
     saveChests() {
@@ -642,8 +657,6 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
             this.saveInt32( sign.position.x );
             this.saveInt32( sign.position.y );
         });
-
-        return this.offset;
     }
 
     saveNPCs() {
@@ -742,8 +755,6 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
             }
         });
         this.saveBoolean( false );
-
-        return this.offset;
     }
 
     saveTileEntities() {
@@ -872,7 +883,6 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
             this.saveInt32( room.position.y );
         });
 
-        return this.offset;
     }
 
     saveBestiary() {
@@ -925,8 +935,6 @@ export default class terrariaWorldSaver extends terrariaFileSaver {
         this.saveBoolean(creativePowers.stopBiomeSpreadPower);
 
         this.saveBoolean(false);
-
-        return this.offset;
     }
 
     saveFooter() {
